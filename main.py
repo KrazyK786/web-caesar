@@ -14,46 +14,73 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-import webapp2
+import webapp2, cgi
 import caesar
+
+def build_page(textarea_content):
+    rot_label = "<label>Rotate by:</label>"
+
+    rotation_input = "<input type='number' name='rotation'/>"
+
+    message_label = "<label>Type a message:</label>"
+    textarea = "<textarea name='message'>" + textarea_content + "</textarea>"
+    submit = "<input type='submit' >"
+    form = "<form method='post'>" + rot_label + rotation_input + "<br><br>" + message_label + textarea  + "<br>" + submit + "</form>"
+
+    head = """
+    <head>
+        <title>Web Caesar</title>
+        <style type="text/css">
+            .error{
+                color:red;
+            }
+        </style>
+    </head>
+    """
+
+    header = "<h2>Web Caesar</h2>"
+
+    return head + header + form
+
+def errorElement(error):
+
+    error_element = "<p class='error'>" + error + "</p>" if error else ""
+
+    return error_element
+
 
 class MainHandler(webapp2.RequestHandler):
     def get(self):
-        rot_label = "<label>Rotate by:</label>"
+        content = build_page("")
 
+        error = self.request.get("error")
+        error_element = errorElement(error) #"<p class='error'>" + error + "</p>" if error else ""
 
-        rotation_input = "<input type='number' name='rotation'/>"
-
-        message_label = "<label>Type a message:</label>"
-        textarea = "<textarea name='message'></textarea>"
-        submit = "<input type='submit' >"
-        form = "<form method='post'>" + rot_label + rotation_input + "<br><br>" + message_label + textarea  + "<br>" + submit + "</form>"
-
-        header = "<h2>Web Caesar</h2>"
-
-        self.response.write(header + form)
+        self.response.write(content + error_element)
 
     def post(self):
         message = self.request.get("message")
-        #message = 'Hello world!!!!!!!!!!!!!'
-        #rotation = self.request.get("rotation")
 
-        encrypted_message = caesar.encrypt(message, int(self.request.get("rotation")))
+        if not self.request.get("rotation"):
+            error = "Please enter an amount to rotate by"
 
-        rot_label = "<label>Rotate by:</label>"
+            error_element = errorElement(error) # "<p class='error'>" + error + "</p>" if error else ""
+            content = build_page(message)
+            self.response.write(content + error_element)
+            #self.redirect("/?error=" + error)
+        else:
+            error = ""
+
+            escaped_message = cgi.escape(message)
+
+            encrypted_message = caesar.encrypt(escaped_message, int(self.request.get("rotation")))
+
+            content = build_page(encrypted_message)
+
+            self.response.write(content + error)
 
 
-        rotation_input = "<input type='number' name='rotation'/>"
 
-        message_label = "<label>Type a message:</label>"
-        textarea = "<textarea name='message'>" + encrypted_message + "</textarea>"
-        submit = "<input type='submit' >"
-        form = "<form method='post'>" + rot_label + rotation_input + "<br><br>" + message_label + textarea  + "<br>" + submit + "</form>"
-
-        header = "<h2>Web Caesar</h2>"
-
-
-        self.response.write(header + form)
 
 app = webapp2.WSGIApplication([
     ('/', MainHandler)
